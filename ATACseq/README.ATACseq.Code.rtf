@@ -1,0 +1,249 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Astrocyte ATAC-seq Analysis \'96 ATP13A2 (C.1306 vs. WT)\
+\
+------------------------------------------------------------------\
+STUDY OVERVIEW\
+\
+This dataset contains ATAC sequencing data from human iPSC-derived\
+midbrain astrocytes comparing wild-type (WT) cells and ATP13A2 c.1306\
+loss-of-function (LOF) astrocytes.\
+\
+The goal of this experiment was to identify chromatin accessibility\
+changes associated with ATP13A2 deficiency in astrocytes, as described\
+in the associated manuscript.\
+\
+Biological replicates:\
+- WT astrocytes: 3 independent differentiations\
+- ATP13A2 c.1306 astrocytes: 3 independent differentiations\
+\
+Total samples: 6\
+\
+------------------------------------------------------------------\
+SAMPLE DESCRIPTION AND NAMING\
+\
+Cell type:\
+Human iPSC-derived midbrain astrocytes\
+\
+Genotypes:\
+- WT (isogenic control)\
+- ATP13A2 c.1306 mutant (loss-of-function)\
+\
+Sample naming convention should distinguish:\
+- WT samples\
+- ATP13A2 c.1306 mutant samples\
+\
+The downstream analysis compares chromatin accessibility between WT and\
+ATP13A2 c.1306 astrocytes.\
+\
+------------------------------------------------------------------\
+RAW DATA FILES\
+\
+Raw sequencing files consist of paired-end ATAC-seq reads in FASTQ\
+format (.fastq.gz).\
+\
+These files were used for alignment, peak calling, and differential\
+accessibility analysis prior to annotation and downstream analysis in R.\
+\
+Associated .md5 files contain checksum hashes for file integrity\
+verification.\
+\
+------------------------------------------------------------------\
+PROCESSED INPUT FILE\
+\
+Input object used in the R Markdown analysis:\
+\
+WT_vs_ATP13A2c1306_annotated_diff_peaks\
+\
+This object contains annotated differential accessibility peaks\
+comparing WT and ATP13A2 c.1306 astrocytes.\
+\
+Relevant columns used in the analysis include:\
+- Fold\
+- p.value\
+- FDR\
+- Conc_ATP13A2c1306\
+- Conc_WT\
+- annotation\
+- gene_symbol\
+- gene_biotype\
+- start\
+- end\
+- geneStart\
+\
+These values were used to calculate accessibility metrics, classify\
+genomic annotations, and integrate ATAC-seq with RNA-seq results.\
+\
+------------------------------------------------------------------\
+ANALYSIS OVERVIEW\
+\
+The analysis was performed in R using an R Markdown script and consists of:\
+\
+1. Loading annotated differential ATAC-seq peaks\
+2. Cleaning and formatting peak-level statistics\
+3. Simplifying genomic annotations\
+4. Generating exploratory differential accessibility plots\
+5. Generating MA plots of chromatin accessibility\
+6. Performing promoter-focused accessibility analysis\
+7. Performing Gene Ontology (GO) enrichment analysis on promoter-\
+   associated genes\
+8. Integrating ATAC-seq promoter accessibility with RNA-seq\
+   differential expression\
+\
+------------------------------------------------------------------\
+OUTPUT FILES\
+\
+Main analysis outputs include:\
+\
+- Exploratory volcano plots\
+- Distance-to-TSS histogram\
+- Figure S4E: ATAC-seq MA plot\
+- Annotation composition bar plots\
+- Promoter-focused MA plot\
+- Figure 4I: ATAC-seq / RNA-seq concordance scatterplot\
+- GO enrichment results for differentially accessible promoter genes\
+- GO enrichment results for concordant ATAC/RNA gene sets\
+\
+If figures are saved externally, they should be stored in:\
+\
+outputs/figures/\
+\
+------------------------------------------------------------------\
+FIGURE DESCRIPTIONS\
+\
+Figure S4E \'96 ATAC-seq MA Plot\
+\
+- Generated using ggplot2\
+- Displays:\
+  - A = average accessibility (log2 scale)\
+  - M = log2 fold change in accessibility (ATP13A2 c.1306 / WT)\
+- Based on annotated differential accessibility peaks\
+\
+---------------------------------------------------------------\
+\
+Figure 4I \'96 ATAC/RNA Concordance Scatterplot\
+\
+- Generated using ggplot2 and ggrepel\
+- Compares:\
+  - ATAC promoter log2 fold change\
+  - RNA-seq log2 fold change\
+- Genes are classified as:\
+  - Concordant Up\
+  - Concordant Down\
+  - Discordant\
+- Top concordant genes are labeled on the plot\
+\
+---------------------------------------------------------------\
+\
+Bar Plots \'96 Accessible Differential Promoters / Annotation Composition\
+\
+- Generated using ggplot2\
+- Show the percentage of peaks in simplified annotation categories\
+- Separate summaries are generated for:\
+  - peaks more accessible in ATP13A2 c.1306\
+  - peaks more accessible in WT\
+\
+------------------------------------------------------------------\
+METHODS DETAILS\
+\
+Peak-level processing:\
+\
+Annotated differential peaks were imported into R and cleaned by\
+converting relevant columns to numeric format.\
+\
+The following values were calculated:\
+- neglog10_p = -log10(p.value)\
+- A = mean accessibility on the log2 scale\
+- M = log2 fold change in accessibility (ATP13A2 c.1306 / WT)\
+\
+A pseudocount of 1 was added during MA plot calculation to avoid\
+log2(0).\
+\
+---------------------------------------------------------------\
+\
+Annotation simplification:\
+\
+Detailed peak annotations were grouped into simplified categories:\
+- Promoter\
+- Intron\
+- Gene body\
+- Distal intergenic\
+- Other\
+\
+---------------------------------------------------------------\
+\
+Promoter-focused analysis:\
+\
+Promoter peaks were extracted from the annotated peak table.\
+\
+To reduce redundancy at the gene level:\
+- only promoter-associated peaks were retained\
+- only protein-coding genes were kept\
+- one representative peak per gene was selected using the peak with the\
+  largest absolute accessibility effect size\
+\
+---------------------------------------------------------------\
+\
+RNA-seq integration:\
+\
+ATAC-seq promoter accessibility data were integrated with RNA-seq\
+differential expression results using gene symbols.\
+\
+For each gene, concordance was classified as:\
+- Concordant Up:\
+  promoter accessibility increased and RNA expression increased\
+- Concordant Down:\
+  promoter accessibility decreased and RNA expression decreased\
+- Discordant:\
+  all other combinations\
+\
+---------------------------------------------------------------\
+\
+Functional Enrichment:\
+\
+Tool: clusterProfiler\
+Database: org.Hs.eg.db\
+\
+GO enrichment was performed for:\
+- genes with more accessible promoters in ATP13A2 c.1306\
+- genes with more accessible promoters in WT\
+- genes showing concordant ATAC/RNA increases\
+- genes showing concordant ATAC/RNA decreases\
+\
+For concordant ATAC/RNA analyses:\
+- ontology = ALL\
+- redundant GO terms were reduced using simplify() with cutoff = 0.7\
+\
+For promoter accessibility analyses:\
+- GO categories BP, MF, and CC were tested separately\
+\
+Multiple testing correction:\
+- Benjamini\'96Hochberg (BH)\
+\
+------------------------------------------------------------------\
+SOFTWARE AND DEPENDENCIES\
+\
+R packages used:\
+\
+- tidyverse\
+- ggplot2\
+- ggrepel\
+- clusterProfiler\
+- org.Hs.eg.db\
+- enrichplot\
+- patchwork\
+\
+------------------------------------------------------------------\
+NOTES\
+\
+- Promoter-focused analyses use only peaks annotated as promoter peaks.\
+- Promoter integration with RNA-seq uses one representative promoter\
+  peak per gene..\
+- Gene labeling in selected plots uses curated inflammatory,\
+  reactive astrocyte, and senescence-associated gene sets defined within\
+  the script.}

@@ -1,0 +1,340 @@
+---
+title: "Astrocyte RNA-seq – ATP13A2 (KOLF c.1306 vs WT)"
+author: "E. Coccia"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+    number_sections: true
+params:
+  data_dir: "data"
+  out_dir: "outputs"
+  project_seed: 123
+---
+
+## Overview
+
+This document performs differential gene expression analysis of astrocyte RNA-seq data comparing ATP13A2 c.1306 KOLF lines versus WT controls.
+
+### Main analysis steps
+1. Load transcript-level Kallisto counts
+2. Parse transcript annotation fields
+3. Aggregate transcript counts to gene-level counts
+4. Construct sample group labels from sample names
+5. Perform filtering and TMM normalization with edgeR
+6. Generate PCA from logCPM values
+7. Perform quasi-likelihood differential expression testing with edgeR
+8. Generate a volcano plot highlighting lysosomal and neuroinflammation-related genes
+9. Perform GO Molecular Function enrichment analysis with clusterProfiler
+
+### Figures generated from this script
+- **Figure 2B**: Volcano plot highlighting lysosomal and neuroinflammation genes
+- **Figure S2A**: GO Molecular Function dot plot (clusterProfiler)
+
+### Software and packages
+This analysis uses R packages including:
+- tidyverse
+- edgeR
+- ggrepel
+- fs
+- readr
+- ggplot2
+- here
+- clusterProfiler
+- org.Hs.eg.db
+- patchwork
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, message = FALSE, warning = FALSE,
+  fig.align = "center", fig.width = 7, fig.height = 5
+)
+set.seed(params$project_seed)
+
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(edgeR)
+  library(ggrepel)
+  library(fs)
+  library(readr)
+  library(ggplot2)
+  library(here)
+})
+```
+```{r setup, include=FALSE}
+# ---- load transcript-level counts ----
+load(here::here(params$data_dir, "resultsgencodev38_kallisto_counts.RData"))
+stopifnot(exists("tx_counts"))
+
+tx_counts <- as.data.frame(tx_counts) %>%
+  tibble::rownames_to_column("transcript")
+
+# Expected transcript rowname format:
+# ENST|ENSG|havana_gene|havana_tx|transcript_name|gene_name|x|transcript_type
+
+parsed <- tx_counts %>%
+  tidyr::separate(
+    col  = transcript,
+    into = c("transcript_id","gene_id","havana_gene","havana_transcript",
+             "transcript_name","gene_name","x","transcript_type"),
+    sep  = "\\|", fill = "right", remove = FALSE
+  ) %>%
+  tidyr::drop_na(gene_name)
+
+# ---- aggregate to gene counts ----
+gene_counts <- parsed %>%
+  dplyr::select(gene_name, where(is.numeric)) %>%
+  dplyr::group_by(gene_name) %>%
+  dplyr::summarise(dplyr::across(everything(), sum, na.rm = TRUE), .groups = "drop") %>%
+  dplyr::arrange(gene_name)
+
+# ---- build group labels from column names ----
+groups <- dplyr::case_when(
+  stringr::str_detect(keep_cols, regex("c\\.1306", ignore_case = TRUE)) ~ "ATP13A2_c.1306",
+  stringr::str_detect(keep_cols, regex("\\bWT\\b|_WT", ignore_case = TRUE)) ~ "WT",
+  TRUE ~ "UNKNOWN"
+)
+```
+
+```{r setup, include=FALSE}
+# ---- DGEList, filtering, normalization ----
+kolf_counts <- gene_counts_kolf %>%
+  tibble::column_to_rownames("gene_name") %>%
+  as.matrix()
+
+d_KOLF <- edgeR::DGEList(
+  counts = kolf_counts,
+  group  = factor(groups, levels = c("WT","ATP13A2_c.1306"))
+)
+
+keep <- rowSums(edgeR::cpm(d_KOLF) > 10) >= 2
+d_KOLF <- d_KOLF[keep, , keep.lib.sizes = FALSE]
+
+d_KOLF$samples$lib.size <- colSums(d_KOLF$counts)
+d_KOLF <- edgeR::calcNormFactors(d_KOLF, method = "TMM")
+
+logCPM <- edgeR::cpm(d_KOLF, log = TRUE, prior.count = 1)
+
+# ---- PCA ----
+pca <- prcomp(t(logCPM), scale. = FALSE)
+var_expl <- (pca$sdev^2 / sum(pca$sdev^2)) * 100
+
+pca_df <- tibble::as_tibble(pca$x, rownames = "sample") %>%
+  dplyr::mutate(condition = d_KOLF$samples$group[match(sample, rownames(d_KOLF$samples))])
+
+p_pca <- ggplot2::ggplot(pca_df, ggplot2::aes(PC1, PC2, color = condition, label = sample)) +
+  ggplot2::geom_point(size = 3) +
+  ggrepel::geom_text_repel(show.legend = FALSE) +
+  ggplot2::labs(
+    title = "PCA (edgeR logCPM) – KOLF c.1306 vs WT",
+    x = sprintf("PC1 (%.1f%%)", var_expl[1]),
+    y = sprintf("PC2 (%.1f%%)", var_expl[2]),
+    color = "Condition"
+  ) +
+  ggplot2::theme_bw()
+
+p_pca
+save_fig(p_pca, "pca_kolf_edger", width = 7.5, height = 5.5)
+```
+
+```{r setup, include=FALSE}
+
+# Use the filtered and normalized DGEList from PCA step
+stopifnot(exists("d_KOLF"))
+d_KOLF1 <- d_KOLF
+
+designKOLF <- model.matrix(~ 0 + group, data = d_KOLF1$samples)
+colnames(designKOLF) <- levels(d_KOLF1$samples$group)
+designKOLF
+
+d_KOLF1 <- estimateDisp(d_KOLF1, designKOLF)
+
+png(here::here(params$out_dir, "figures", "BCV_KOLF.png"), width = 1600, height = 1200, res = 150)
+plotBCV(d_KOLF1, main = "BCV – KOLF (edgeR QL)")
+dev.off()
+
+fitK <- glmQLFit(d_KOLF1, designKOLF)
+contrastK <- makeContrasts(ATP13A2_c.1306 - WT, levels = designKOLF)
+qlfK <- glmQLFTest(fitK, contrast = contrastK)
+
+RNAseq_DEGs <- topTags(qlfK, n = Inf)$table %>%
+  tibble::rownames_to_column("gene") %>%
+  arrange(FDR)
+
+readr::write_csv(RNAseq_DEGs, ("RNAseq_DEGs.csv"))
+
+# DEG numbers report summary
+fc_cutoff <- 1
+fdr_cutoff <- 0.01
+
+sig_genes <- RNAseq_DEGs %>%
+  filter(!is.na(FDR), FDR < fdr_cutoff, abs(logFC) >= fc_cutoff)
+
+n_up <- sig_genes %>% filter(logFC >= fc_cutoff) %>% nrow()
+n_down <- sig_genes %>% filter(logFC <= -fc_cutoff) %>% nrow()
+
+n_up
+n_down
+
+# ------ FIGURE 2B----------
+RNAseq_DEG <- df
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+
+
+# Gene vectors
+lyso_genes  <- LYSOSOME$gene
+neuro_genes <- Neuroinflammation$`Molecule Name`
+
+# Fold-change cutoff
+fc_cutoff <- 0.7
+
+# Prepare DE table
+df <- RNAseq_DEGs %>%
+  filter(!is.na(FDR), FDR > 0, !is.na(logFC)) %>%
+  mutate(
+    is_lyso  = gene %in% lyso_genes,
+    is_neuro = gene %in% neuro_genes,
+    highlight = (is_lyso | is_neuro) & abs(logFC) >= fc_cutoff,
+    label_color = case_when(
+      is_lyso  ~ "aquamarine4",
+      is_neuro ~ "darkorange3",
+      TRUE     ~ NA_character_
+    )
+  )
+
+ggplot(df, aes(x = logFC, y = -log10(FDR))) +
+  # Cutoff lines
+  geom_hline(yintercept = -log10(0.01),
+             linetype = "dotted", color = "azure3", linewidth = 0.6) +
+  geom_vline(xintercept = c(-fc_cutoff, fc_cutoff),
+             linetype = "dotted", color = "azure3", linewidth = 0.6) +
+  
+  # Background genes
+  geom_point(
+    data = subset(df, !is_lyso & !is_neuro),
+    color = "azure3",
+    alpha = 0.35,
+    size  = 1.8
+  ) +
+  
+  # Neuroinflammation genes
+  geom_point(
+    data = subset(df, is_neuro),
+    color = "darkorange1",
+    alpha = 0.65,
+    size  = 2.4
+  ) +
+  
+  # Lysosome genes
+  geom_point(
+    data = subset(df, is_lyso),
+    color = "aquamarine3",
+    alpha = 0.65,
+    size  = 2.4
+  ) +
+  
+  # Labels + connectors (bigger text)
+  geom_text_repel(
+    data = subset(df, highlight),
+    aes(label = gene),
+    size = 4,                       
+    color = df$label_color[df$highlight],
+    box.padding = 0.5,
+    point.padding = 0.4,
+    segment.color = df$label_color[df$highlight],
+    segment.size = 0.45,
+    max.overlaps = Inf
+  ) +
+  
+  labs(
+    title = "Volcano plot: Neuroinflammation & Lysosome genes",
+    x = "log2 Fold Change",
+    y = expression(-log[10]("FDR"))
+  ) +
+  
+  theme_bw(base_size = 16) +           
+  theme(
+    plot.title   = element_text(size = 22, face = "bold"),
+    axis.title   = element_text(size = 20),
+    axis.text    = element_text(size = 16),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_line(color = "black", linewidth = 0.6)
+  )
+
+
+# ------FIGURE S2A----------
+## ---- GO-MF-up-vs-down, message=FALSE, warning=FALSE --------------------
+install.packages("tidytext")
+
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(ggplot2)
+library(dplyr)
+
+ego_up_mf <- enrichGO(gene          = up_genes,
+                      OrgDb         = org.Hs.eg.db,
+                      keyType       = "SYMBOL",
+                      ont           = "MF",
+                      pAdjustMethod = "BH",
+                      pvalueCutoff  = 0.01,
+                      readable      = TRUE)
+
+ego_up_mf_simple <- simplify(ego_up_mf, 
+                             cutoff = 0.7, 
+                             by = "p.adjust", 
+                             select_fun = min)
+
+ego_down_mf <- enrichGO(gene          = down_genes,
+                        OrgDb         = org.Hs.eg.db,
+                        keyType       = "SYMBOL",
+                        ont           = "MF",
+                        pAdjustMethod = "BH",
+                        pvalueCutoff  = 0.01,
+                        readable      = TRUE)
+
+ego_down_mf_simple <- simplify(ego_down_mf, 
+                               cutoff = 0.7, 
+                               by = "p.adjust", 
+                               select_fun = min)
+
+plot_up <- dotplot(ego_up_mf_simple, showCategory = 10) + 
+  ggtitle("Simplified MF: Upregulated Genes")
+
+plot_down <- dotplot(ego_down_mf_simple, showCategory = 10) + 
+  ggtitle("Simplified MF: Downregulated Genes")
+
+print(plot_up)
+print(plot_down)
+
+library(clusterProfiler)
+library(ggplot2)
+library(patchwork)
+
+all_results <- rbind(as.data.frame(ego_up_mf_simple), 
+                     as.data.frame(ego_down_mf_simple))
+
+p_limits <- range(all_results$p.adjust)
+count_limits <- range(all_results$Count)
+
+p1 <- dotplot(ego_up_mf_simple, showCategory = 10) + 
+  scale_color_gradient(low = "red", high = "blue", limits = p_limits) +
+  scale_size_continuous(limits = count_limits) +
+  ggtitle("Upregulated") +
+  theme(legend.position = "none")
+
+p2 <- dotplot(ego_down_mf_simple, showCategory = 10) + 
+  scale_color_gradient(low = "red", high = "blue", limits = p_limits) +
+  scale_size_continuous(limits = count_limits) +
+  ggtitle("Downregulated")
+
+combined_plot <- (p1 | p2) + 
+  plot_layout(guides = "collect") +
+  plot_annotation(title = "Molecular Function: Comparison of Top 10 Pathways",
+                  subtitle = "Both plots share the same p-adjust and Count scales")
+
+print(combined_plot)
+```

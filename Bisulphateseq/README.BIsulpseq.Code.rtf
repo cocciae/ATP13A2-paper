@@ -1,0 +1,176 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 README.txt\
+RRBS DNA Methylation Analysis \'96 Human Astrocytes (ATP13A2 WT vs c.1306)\
+\
+------------------------------------------------------------------\
+STUDY OVERVIEW\
+\
+This repository contains code for reduced representation bisulfite\
+sequencing (RRBS) DNA methylation analysis in human astrocytes.\
+\
+The analysis compares DNA methylation profiles between:\
+\
+- WT (wild-type astrocytes)\
+- ATP13A2 loss-of-function mutant astrocytes (c1306)\
+\
+The workflow includes methylation data import, quality control,\
+coverage filtering, CpG unification, similarity analyses, global and\
+regional methylation analysis, differential methylation testing,\
+genome browser export, and promoter-level visualization.\
+\
+------------------------------------------------------------------\
+ANALYSIS SUMMARY\
+\
+Main steps:\
+\
+1. Import methylation calls (Bismark coverage)\
+2. Perform QC (coverage + methylation distributions)\
+3. Filter CpGs by coverage\
+4. Unite CpGs across samples\
+5. Perform correlation, clustering, PCA\
+6. Compute global methylation levels\
+7. Generate tiling windows for regional methylation\
+8. Perform differential methylation analysis (WT vs c1306)\
+9. Export DMRs for UCSC annotation and genome browser\
+10. Generate Figure S4C (promoter volcano plot with curated genes)\
+\
+------------------------------------------------------------------\
+INPUT DATA\
+\
+Required metadata file:\
+\
+metadata/samplesheet.csv\
+\
+Required columns:\
+- sample_id\
+- condition\
+- file_path\
+\
+Conditions:\
+- WT\
+- c1306\
+\
+Input format:\
+- Bismark coverage files (recommended)\
+\
+Genome assembly:\
+- hg38\
+\
+------------------------------------------------------------------\
+KEY INPUT OBJECTS\
+\
+- meth_raw      : raw methylation calls\
+- meth_filt     : filtered CpGs\
+- meth_base     : united CpG matrix\
+- tiles_base    : tiled regional methylation\
+- methylation_annot : annotated promoter-level methylation\
+\
+------------------------------------------------------------------\
+OUTPUT STRUCTURE\
+\
+Results are stored in:\
+\
+results/\
+\
+Subdirectories:\
+- qc\
+- similarity\
+- global\
+- tiles\
+- diffmeth\
+- browser_tracks\
+- exports_ucsc\
+- integration (optional)\
+- enrichment (optional)\
+\
+------------------------------------------------------------------\
+DIFFERENTIAL METHYLATION\
+\
+Comparison performed:\
+\
+WT vs c1306\
+\
+Method:\
+- methylKit logistic regression\
+- overdispersion correction: MN\
+- multiple testing: BH\
+\
+Thresholds:\
+- q-value cutoff: 0.01\
+- methylation difference cutoff: 75 (strict)\
+\
+Outputs:\
+- full DMR table\
+- significant DMR table\
+- volcano plot\
+- chromosome-level summaries\
+- BED export for UCSC\
+- bedGraph for genome browser\
+\
+------------------------------------------------------------------\
+PROMOTER-LEVEL ANALYSIS (FIGURE S4C)\
+\
+Promoter definition:\
+- Promoter (<=1kb)\
+- Promoter (1\'962kb)\
+\
+Processing:\
+- group by gene symbol\
+- select promoter with largest absolute methylation change\
+\
+Plot:\
+- x-axis: methylation difference\
+- y-axis: -log10(q-value)\
+\
+Color:\
+- red: hypomethylated\
+- blue: hypermethylated\
+- grey: background\
+\
+Curated gene set includes:\
+- astrocyte reactivity markers\
+- chemokines\
+- cytokines\
+- complement genes\
+- ECM remodeling\
+- lipid metabolism\
+\
+------------------------------------------------------------------\
+KEY METRICS\
+\
+Hypomethylated promoters:\
+qvalue < 0.05 & meth.diff <= -0.3\
+\
+Hypermethylated promoters:\
+qvalue < 0.05 & meth.diff >= 0.3\
+\
+------------------------------------------------------------------\
+SOFTWARE\
+\
+Required:\
+- methylKit\
+- tidyverse\
+- data.table\
+- ggplot2\
+\
+Optional:\
+- ggrepel\
+- pheatmap\
+- clusterProfiler\
+- org.Hs.eg.db\
+\
+------------------------------------------------------------------\
+NOTES\
+\
+- Requires count-based methylation data (not % only)\
+- CpG context only\
+- UCSC annotation step is external\
+- Figure S4C requires annotated promoter table\
+\
+------------------------------------------------------------------}

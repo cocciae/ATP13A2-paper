@@ -1,0 +1,244 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Astrocyte RNA-seq Analysis \'96 ATP13A2 (KOLF c.1306 vs WT)\
+\
+------------------------------------------------------------------\
+STUDY OVERVIEW\
+\
+This dataset contains bulk RNA sequencing data from human iPSC-derived\
+midbrain astrocytes comparing wild-type (WT) cells and ATP13A2 c.1306\
+loss-of-function (LOF) astrocytes.\
+\
+The goal of this experiment was to identify transcriptional changes\
+associated with ATP13A2 deficiency in astrocytes, as described in the\
+associated manuscript.\
+\
+Biological replicates:\
+- WT astrocytes: 3 independent differentiations\
+- ATP13A2 c.1306 astrocytes: 3 independent differentiations\
+\
+Total samples: 6\
+\
+------------------------------------------------------------------\
+SAMPLE DESCRIPTION AND NAMING\
+\
+Cell type:\
+Human iPSC-derived midbrain astrocytes\
+\
+Genotypes:\
+- WT (isogenic control)\
+- ATP13A2 c.1306 mutant (loss-of-function)\
+\
+FASTQ sample naming convention:\
+\
+WT samples:\
+- KOLF-WT-1\
+- KOLF-WT-2\
+- KOLF-WT-3\
+\
+ATP13A2 c.1306 samples:\
+- KOLF-C1306-1\
+- KOLF-C1306-2\
+- KOLF-C1306-3\
+\
+Each sample contains paired-end sequencing reads:\
+- *_R1_001.fastq.gz\
+- *_R2_001.fastq.gz\
+\
+Associated .md5 files contain checksum hashes for file integrity verification.\
+\
+------------------------------------------------------------------\
+\
+RAW DATA FILES\
+\
+FASTQ files (.fastq.gz)\
+\
+These files contain raw paired-end sequencing reads and were used as\
+input for transcript quantification.\
+\
+Example:\
+- KOLF-C1306-1_R1_001.fastq.gz\
+- KOLF-C1306-1_R2_001.fastq.gz\
+\
+------------------------------------------------------------------\
+\
+TRANSCRIPT QUANTIFICATION\
+\
+File:\
+RNAseq_COUNTS.xlsx\
+\
+Transcript abundance quantification was performed using:\
+\
+Software: Kallisto\
+Method: Pseudo-alignment to reference transcriptome\
+\
+Counts were aggregated to gene-level and imported into R for downstream\
+differential expression analysis.\
+\
+Columns in RNAseq_COUNTS.xlsx:\
+\
+- gene_name     : Gene symbol\
+- WT-1          : Raw counts for WT replicate 1\
+- WT-2          : Raw counts for WT replicate 2\
+- WT-3          : Raw counts for WT replicate 3\
+- C1306-1       : Raw counts for ATP13A2 c.1306 replicate 1\
+- C1306-2       : Raw counts for ATP13A2 c.1306 replicate 2\
+- C1306-3       : Raw counts for ATP13A2 c.1306 replicate 3\
+\
+This file was used as input for differential expression analysis in edgeR.\
+\
+------------------------------------------------------------------\
+\
+ANALYSIS OVERVIEW\
+\
+The analysis was performed in R using an R Markdown script and consists of:\
+\
+1. Loading transcript-level counts\
+2. Parsing transcript annotation fields\
+3. Aggregating transcript counts to gene-level counts\
+4. Assigning experimental groups based on sample names\
+5. Filtering lowly expressed genes\
+6. Normalizing counts using TMM (edgeR)\
+7. Performing Principal Component Analysis (PCA)\
+8. Performing differential expression analysis (edgeR quasi-likelihood)\
+9. Generating volcano plot highlighting selected gene sets\
+10. Performing Gene Ontology (GO) enrichment analysis\
+\
+------------------------------------------------------------------\
+\
+OUTPUT FILES\
+\
+Differential expression results:\
+\
+RNAseq_DEGs.csv\
+Full differential expression table generated using edgeR\
+\
+Figures:\
+\
+- PCA plot (edgeR logCPM)\
+- BCV plot (Biological Coefficient of Variation)\
+- Figure 2B: Volcano plot (neuroinflammation & lysosome genes)\
+- Figure S2A: GO Molecular Function enrichment dot plot\
+\
+Figures are saved in:\
+\
+outputs/figures/\
+\
+------------------------------------------------------------------\
+\
+FIGURE DESCRIPTIONS\
+\
+Figure 2B \'96 Volcano Plot\
+\
+- Generated using ggplot2 and ggrepel\
+- Based on edgeR differential expression results\
+- Highlights:\
+  - Lysosomal genes (LYSOSOME$gene)\
+  - Neuroinflammation genes (Neuroinflammation$'Molecule Name')\
+- Labels applied to genes exceeding fold-change threshold\
+\
+---------------------------------------------------------------\
+\
+Figure S2A \'96 GO Molecular Function Enrichment\
+\
+- Generated using clusterProfiler\
+- Separate enrichment for:\
+  - Upregulated genes\
+  - Downregulated genes\
+- Redundant GO terms reduced using simplify()\
+- Visualization:\
+  - Dot plots combined using patchwork\
+  - Shared scales for comparison\
+\
+------------------------------------------------------------------\
+\
+METHODS DETAILS\
+\
+Gene-level quantification:\
+\
+Transcript-level counts were aggregated to gene-level counts by summing\
+counts across transcripts sharing the same gene symbol.\
+\
+---------------------------------------------------------------\
+\
+Filtering:\
+\
+Genes were retained if:\
+- CPM > 10 in at least 2 samples\
+\
+---------------------------------------------------------------\
+\
+Normalization:\
+\
+Method: TMM (Trimmed Mean of M-values)\
+Implemented using edgeR::calcNormFactors\
+\
+---------------------------------------------------------------\
+\
+Differential Expression:\
+\
+Framework: edgeR quasi-likelihood GLM\
+\
+Functions used:\
+- estimateDisp()\
+- glmQLFit()\
+- glmQLFTest()\
+\
+Contrast tested:\
+ATP13A2_c.1306 - WT\
+\
+---------------------------------------------------------------\
+\
+Significance thresholds:\
+\
+- FDR < 0.01\
+- |log2 Fold Change| \uc0\u8805  1 (DEG summary)\
+- |log2 Fold Change| \uc0\u8805  0.7 (volcano plot highlighting)\
+\
+---------------------------------------------------------------\
+\
+Functional Enrichment:\
+\
+Tool: clusterProfiler\
+Database: org.Hs.eg.db\
+Ontology: GO Molecular Function (MF)\
+Multiple testing correction: Benjamini\'96Hochberg (BH)\
+Redundancy reduction: simplify() (cutoff = 0.7)\
+\
+------------------------------------------------------------------\
+\
+SOFTWARE AND DEPENDENCIES\
+\
+R packages used:\
+\
+- tidyverse\
+- edgeR\
+- ggrepel\
+- fs\
+- readr\
+- ggplot2\
+- here\
+- clusterProfiler\
+- org.Hs.eg.db\
+- patchwork\
+\
+\
+------------------------------------------------------------------\
+\
+NOTES\
+\
+- Gene sets used for highlighting must be preloaded:\
+  LYSOSOME\
+  Neuroinflammation\
+\
+- Sample naming must include:\
+  "WT" for wild-type samples\
+  "c.1306" for mutant samples\
+\
+------------------------------------------------------------------\
+}
