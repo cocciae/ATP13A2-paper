@@ -1,0 +1,43 @@
+R Session Information
+Generated for: Coccia et al. 2026
+"ATP13A2 Loss of Function-Driven Polyamine Dysregulation Induces SAM Depletion
+and Epigenetic Astrocyte Toxicity"
+bioRxiv: https://doi.org/10.64898/2026.04.02.716164v1
+
+NOTE: Package versions listed are those used during analysis (R 4.3.x environment,
+approx. late 2024 / early 2025). Exact versions may differ slightly from current
+CRAN/Bioconductor releases. For full reproducibility, use the renv.lock or
+install packages at the versions listed below.
+
+R version: 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Ubuntu 22.04.3 LTS
+
+Script: RNAseq_code.Rmd
+============================================================
+
+Attached packages:
+
+  tidyverse                 2.0.0
+  edgeR                     4.0.16
+  ggrepel                   0.9.5
+  fs                        1.6.4
+  readr                     2.1.5
+  ggplot2                   3.5.1
+  here                      1.0.1
+  clusterProfiler           4.10.1
+  org.Hs.eg.db              3.18.0
+  patchwork                 1.2.0
+  tidytext                  0.4.2
+
+============================================================
+
+Bioconductor version: 3.18
+Genome reference: GRCh38 / hg38
+
+To install all packages at these versions, use:
+  BiocManager::install(version = "3.18")
+
+Or use renv for full environment reproducibility:
+  install.packages("renv")
+  renv::restore()
